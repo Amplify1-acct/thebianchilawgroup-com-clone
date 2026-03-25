@@ -40,12 +40,35 @@ export default function Home() {
   const [githubUser, setGithubUser] = useState('')
   const [repoName, setRepoName] = useState('')
   const [maxPages, setMaxPages] = useState(50)
+  const [keysSaved, setKeysSaved] = useState(false)
   const [steps, setSteps] = useState<Steps>(initialSteps)
   const [running, setRunning] = useState(false)
   const [result, setResult] = useState<{ liveUrl: string; repoUrl: string; fileCount: number; pageCount: number } | null>(null)
   const [logs, setLogs] = useState<string[]>([])
   const [keysOpen, setKeysOpen] = useState(true)
   const logRef = useRef<HTMLDivElement>(null)
+
+  // Load keys from localStorage on mount
+  useState(() => {
+    if (typeof window === 'undefined') return
+    const saved = localStorage.getItem('site_cloner_keys')
+    if (saved) {
+      try {
+        const k = JSON.parse(saved)
+        if (k.apify) setApifyKey(k.apify)
+        if (k.github) setGithubKey(k.github)
+        if (k.vercel) setVercelKey(k.vercel)
+        if (k.user) setGithubUser(k.user)
+        setKeysSaved(true)
+      } catch {}
+    }
+  })
+
+  const saveKeys = (apify: string, github: string, vercel: string, user: string) => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('site_cloner_keys', JSON.stringify({ apify, github, vercel, user }))
+    setKeysSaved(true)
+  }
 
   const addLog = (msg: string) => {
     const line = `[${new Date().toLocaleTimeString()}] ${msg}`
@@ -150,16 +173,16 @@ export default function Home() {
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
           onClick={() => setKeysOpen(!keysOpen)}
         >
-          <div style={labelStyle}>API Keys</div>
+          <div style={labelStyle}>API Keys {keysSaved && <span style={{ color: '#3B6D11', fontSize: 11, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>✓ saved</span>}</div>
           <span style={{ fontSize: 12, color: '#888' }}>{keysOpen ? '▼' : '▶'}</span>
         </div>
         {keysOpen && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
             {[
-              { label: 'Apify token', val: apifyKey, set: setApifyKey, ph: 'apify_api_...' },
-              { label: 'GitHub PAT', val: githubKey, set: setGithubKey, ph: 'ghp_...' },
-              { label: 'Vercel token', val: vercelKey, set: setVercelKey, ph: 'vercel token...' },
-              { label: 'GitHub username', val: githubUser, set: setGithubUser, ph: 'your-username' },
+              { label: 'Apify token', val: apifyKey, set: (v: string) => { setApifyKey(v); saveKeys(v, githubKey, vercelKey, githubUser) }, ph: 'apify_api_...' },
+              { label: 'GitHub PAT', val: githubKey, set: (v: string) => { setGithubKey(v); saveKeys(apifyKey, v, vercelKey, githubUser) }, ph: 'ghp_...' },
+              { label: 'Vercel token', val: vercelKey, set: (v: string) => { setVercelKey(v); saveKeys(apifyKey, githubKey, v, githubUser) }, ph: 'vercel token...' },
+              { label: 'GitHub username', val: githubUser, set: (v: string) => { setGithubUser(v); saveKeys(apifyKey, githubKey, vercelKey, v) }, ph: 'your-username' },
             ].map(f => (
               <div key={f.label}>
                 <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{f.label}</div>
