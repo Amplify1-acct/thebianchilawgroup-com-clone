@@ -1,0 +1,4 @@
+{
+  "/api/clone/route": "app/api/clone/route.js",
+  "/page": "app/page.js"
+}
